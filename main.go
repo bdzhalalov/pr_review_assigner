@@ -17,5 +17,10 @@ func main() {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 
-	defer db.Close()
+	defer func(db *database.Database) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("Error closing database connection: %v", err)
+		}
+	}(db)
 }
