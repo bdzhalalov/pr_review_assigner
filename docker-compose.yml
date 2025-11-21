@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  motivation-api:
+  pr-review-assigner:
     container_name: app
     build:
       context: .
@@ -14,7 +14,7 @@ services:
       - .:/var/www/
 
   db:
-    container_name: db
+    container_name: review_assigner_db
     image: mysql:8.0
     ports:
       - "3306:3306"

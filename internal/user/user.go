@@ -1,16 +1,15 @@
 package user
 
 import (
-	"github.com/bdzhalalov/pr-review-assigner/internal/team"
 	"time"
 )
 
 type User struct {
-	ID        uint        `json:"-"`
-	UserID    string      `gorm:"uniqueIndex" json:"user_id"`
-	Username  string      `json:"username"`
-	IsActive  bool        `json:"is_active"`
-	Teams     []team.Team `gorm:"many2many:team_members;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"teams"`
-	CreatedAt time.Time   `json:"-"`
-	UpdatedAt time.Time   `json:"-"`
+	ID        uint   `gorm:"primaryKey"`
+	UserID    string `gorm:"uniqueIndex, size:64" json:"user_id"`
+	Username  string `gorm:"size:255"`
+	IsActive  bool
+	TeamName  string `gorm:"size:255"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

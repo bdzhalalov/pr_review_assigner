@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/bdzhalalov/pr-review-assigner/internal/user/dto"
 	"github.com/bdzhalalov/pr-review-assigner/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -9,7 +10,7 @@ type RepositoryInterface interface {
 	Create(user *User) (*User, error)
 	GetByUserID(userId string) (*User, error)
 	GetByIDs(ids []string) ([]User, error)
-	CreateBatch(users []User) error
+	CreateBatch(users []*User) error
 }
 
 type Service struct {
@@ -24,19 +25,26 @@ func NewUserService(repo RepositoryInterface, logger *logrus.Logger) *Service {
 	}
 }
 
-func (s *Service) GetUsersByIDs(ids []string) ([]User, *errors.BaseError) {
-	users, err := s.repo.GetByIDs(ids)
+func (s *Service) GetUsersByIDs(input dto.GetUsersByIdsDTO) ([]dto.UserDTO, *errors.BaseError) {
+	users, err := s.repo.GetByIDs(input.IDs)
 	if err != nil {
 		s.logger.Errorf("error getting users by ids: %s", err.Error())
 
-		var internalError errors.BaseAbstractError = &errors.InternalServerError{}
-		return nil, internalError.New()
+		return nil, (&errors.InternalServerError{}).New()
 	}
 
-	return users, nil
+	output := s.getDTOFromStruct(users)
+
+	return output, nil
 }
 
-func (s *Service) EnsureUsers(users []User) *errors.BaseError {
+func (s *Service) EnsureUsers(input []dto.UserDTO) *errors.BaseError {
+	users := s.getStructFromDTO(input)
+
+	if len(users) == 0 {
+		return nil
+	}
+
 	ids := make([]string, len(users))
 	for i, u := range users {
 		ids[i] = u.UserID
@@ -44,10 +52,8 @@ func (s *Service) EnsureUsers(users []User) *errors.BaseError {
 
 	existing, err := s.repo.GetByIDs(ids)
 	if err != nil {
-		s.logger.Errorf("error getting existing users: %s", err.Error())
-
-		var internalError errors.BaseAbstractError = &errors.InternalServerError{}
-		return internalError.New()
+		s.logger.Errorf("error getting existing users: %s", err)
+		return (&errors.InternalServerError{}).New()
 	}
 
 	existingMap := make(map[string]struct{}, len(existing))
@@ -55,22 +61,49 @@ func (s *Service) EnsureUsers(users []User) *errors.BaseError {
 		existingMap[u.UserID] = struct{}{}
 	}
 
-	toCreate := []User{}
+	toCreate := make([]*User, 0, len(users))
 	for _, u := range users {
-		if _, ok := existingMap[u.UserID]; !ok {
-			toCreate = append(toCreate, u)
+		if _, found := existingMap[u.UserID]; !found {
+			toCreate = append(toCreate, &u)
+			existingMap[u.UserID] = struct{}{}
 		}
 	}
 
 	if len(toCreate) > 0 {
-		createErrors := s.repo.CreateBatch(toCreate)
-		if createErrors != nil {
-			s.logger.Errorf("error creating users: %s", createErrors.Error())
-
-			var internalError errors.BaseAbstractError = &errors.InternalServerError{}
-			return internalError.New()
+		if err := s.repo.CreateBatch(toCreate); err != nil {
+			s.logger.Errorf("error creating users: %s", err)
+			return (&errors.InternalServerError{}).New()
 		}
 	}
 
 	return nil
+}
+
+func (s *Service) getDTOFromStruct(users []User) []dto.UserDTO {
+	DTOs := make([]dto.UserDTO, 0, len(users))
+
+	for _, u := range users {
+		DTOs = append(DTOs, dto.UserDTO{
+			UserID:   u.UserID,
+			Username: u.Username,
+			TeamName: u.TeamName,
+			IsActive: u.IsActive,
+		})
+	}
+
+	return DTOs
+}
+
+func (s *Service) getStructFromDTO(DTOs []dto.UserDTO) []User {
+	users := make([]User, 0, len(DTOs))
+	for _, userDTO := range DTOs {
+		users = append(users, User{
+			UserID:   userDTO.UserID,
+			Username: userDTO.Username,
+			TeamName: userDTO.TeamName,
+			IsActive: userDTO.IsActive,
+		})
+	}
+
+	return users
 }
