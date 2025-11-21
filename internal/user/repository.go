@@ -1,19 +1,21 @@
 package user
 
-import "github.com/bdzhalalov/pr-review-assigner/pkg/database"
+import (
+	"gorm.io/gorm"
+)
 
 type UserRepository struct {
-	db *database.Database
+	db *gorm.DB
 }
 
-func NewUserRepository(db *database.Database) *UserRepository {
+func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{
 		db: db,
 	}
 }
 
 func (r *UserRepository) Create(user *User) (*User, error) {
-	if err := r.db.Connection.Create(&user).Error; err != nil {
+	if err := r.db.Create(&user).Error; err != nil {
 		return nil, err
 	}
 
@@ -22,7 +24,7 @@ func (r *UserRepository) Create(user *User) (*User, error) {
 
 func (r *UserRepository) GetByUserID(userId string) (*User, error) {
 	var user User
-	if err := r.db.Connection.Where("user_id = ?", userId).First(&user).Error; err != nil {
+	if err := r.db.Where("user_id = ?", userId).First(&user).Error; err != nil {
 		return nil, err
 	}
 
@@ -31,15 +33,15 @@ func (r *UserRepository) GetByUserID(userId string) (*User, error) {
 
 func (r *UserRepository) GetByIDs(ids []string) ([]User, error) {
 	var users []User
-	if err := r.db.Connection.Where("user_id in (?)", ids).Find(&users).Error; err != nil {
+	if err := r.db.Where("user_id in (?)", ids).Find(&users).Error; err != nil {
 		return nil, err
 	}
 
 	return users, nil
 }
 
-func (r *UserRepository) CreateBatch(users []User) error {
-	if err := r.db.Connection.Create(&users).Error; err != nil {
+func (r *UserRepository) CreateBatch(users []*User) error {
+	if err := r.db.Create(users).Error; err != nil {
 		return err
 	}
 

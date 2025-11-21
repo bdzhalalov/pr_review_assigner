@@ -2,21 +2,17 @@ package database
 
 import (
 	"fmt"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/bdzhalalov/pr-review-assigner/internal/team"
+	"github.com/bdzhalalov/pr-review-assigner/internal/user"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 
 	"github.com/bdzhalalov/pr-review-assigner/config"
 )
 
-type Database struct {
-	Connection *gorm.DB
-	logger     *logrus.Logger
-}
-
-func ConnectToDB(config *config.Config, logger *logrus.Logger) (*Database, error) {
-	databaseURI := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+func ConnectToDB(config *config.Config, logger *logrus.Logger) (*gorm.DB, error) {
+	databaseURI := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		config.DbUser,
 		config.DbPass,
 		config.DbHost,
@@ -24,7 +20,7 @@ func ConnectToDB(config *config.Config, logger *logrus.Logger) (*Database, error
 		config.DbName,
 	)
 
-	db, err := gorm.Open("mysql", databaseURI)
+	db, err := gorm.Open(mysql.Open(databaseURI), &gorm.Config{})
 
 	if err != nil {
 		logger.Errorf("Failed to connect to the database: %v", err)
@@ -33,17 +29,11 @@ func ConnectToDB(config *config.Config, logger *logrus.Logger) (*Database, error
 
 	logger.Info("Successfully connected to the database")
 
-	return &Database{
-		Connection: db,
-		logger:     logger,
-	}, nil
-}
-
-func (db *Database) Close() error {
-	if db.Connection != nil {
-		return db.Connection.Close()
+	err = db.AutoMigrate(user.User{}, team.Team{})
+	if err != nil {
+		logger.Errorf("Failed to migrate tables: %v", err)
+		return nil, err
 	}
 
-	db.logger.Info("Connection to database was closed")
-	return nil
+	return db, nil
 }

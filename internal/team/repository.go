@@ -1,25 +1,21 @@
 package team
 
 import (
-	"github.com/bdzhalalov/pr-review-assigner/pkg/database"
+	"gorm.io/gorm"
 )
 
 type TeamRepository struct {
-	db *database.Database
+	db *gorm.DB
 }
 
-func NewTeamRepository(db *database.Database) *TeamRepository {
+func NewTeamRepository(db *gorm.DB) *TeamRepository {
 	return &TeamRepository{
 		db: db,
 	}
 }
 
 func (r *TeamRepository) Create(team *Team) (*Team, error) {
-	if err := r.db.Connection.Create(team).Error; err != nil {
-		return nil, err
-	}
-
-	if err := r.db.Connection.Model(team).Association("Members").Replace(team.Members).Error; err != nil {
+	if err := r.db.Create(team).Error; err != nil {
 		return nil, err
 	}
 
@@ -29,7 +25,7 @@ func (r *TeamRepository) Create(team *Team) (*Team, error) {
 func (r *TeamRepository) GetByName(name string) (*Team, error) {
 	var team Team
 
-	if err := r.db.Connection.Preload("Members").Where("name = ?", name).First(&team).Error; err != nil {
+	if err := r.db.Where("team_name = ?", name).First(&team).Error; err != nil {
 		return nil, err
 	}
 
