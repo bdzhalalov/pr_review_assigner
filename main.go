@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/bdzhalalov/pr-review-assigner/config"
+	"github.com/bdzhalalov/pr-review-assigner/internal/server"
 	"github.com/bdzhalalov/pr-review-assigner/pkg/database"
 	"github.com/bdzhalalov/pr-review-assigner/pkg/logger"
 )
@@ -17,10 +18,9 @@ func main() {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 
-	defer func(db *database.Database) {
-		err := db.Close()
-		if err != nil {
-			log.Fatalf("Error closing database connection: %v", err)
-		}
-	}(db)
+	apiServer := server.Init(&cfg, log, db)
+
+	if err := apiServer.Run(); err != nil {
+		log.Fatalf("Can't start server: %v", err)
+	}
 }
