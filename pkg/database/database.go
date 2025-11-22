@@ -2,14 +2,12 @@ package database
 
 import (
 	"fmt"
-	"github.com/bdzhalalov/pr-review-assigner/internal/team"
-	"github.com/bdzhalalov/pr-review-assigner/internal/user"
+	"github.com/bdzhalalov/pr-review-assigner/config"
+	"github.com/bdzhalalov/pr-review-assigner/internal/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	dbLogger "gorm.io/gorm/logger"
-
-	"github.com/bdzhalalov/pr-review-assigner/config"
 )
 
 func ConnectToDB(config *config.Config, logger *logrus.Logger) (*gorm.DB, error) {
@@ -32,7 +30,7 @@ func ConnectToDB(config *config.Config, logger *logrus.Logger) (*gorm.DB, error)
 
 	logger.Info("Successfully connected to the database")
 
-	err = db.AutoMigrate(user.User{}, team.Team{})
+	err = db.AutoMigrate(models.User{}, models.Team{})
 	if err != nil {
 		logger.Errorf("Failed to migrate tables: %v", err)
 		return nil, err
