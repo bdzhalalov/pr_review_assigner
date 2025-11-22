@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	dbLogger "gorm.io/gorm/logger"
 
 	"github.com/bdzhalalov/pr-review-assigner/config"
 )
@@ -20,7 +21,9 @@ func ConnectToDB(config *config.Config, logger *logrus.Logger) (*gorm.DB, error)
 		config.DbName,
 	)
 
-	db, err := gorm.Open(mysql.Open(databaseURI), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(databaseURI), &gorm.Config{
+		Logger: dbLogger.Default.LogMode(dbLogger.Silent),
+	})
 
 	if err != nil {
 		logger.Errorf("Failed to connect to the database: %v", err)

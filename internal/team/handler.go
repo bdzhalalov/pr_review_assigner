@@ -5,21 +5,18 @@ import (
 	"github.com/bdzhalalov/pr-review-assigner/internal/app/add_team"
 	"github.com/bdzhalalov/pr-review-assigner/internal/team/dto"
 	"github.com/bdzhalalov/pr-review-assigner/pkg/render"
-	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
 type Handler struct {
 	app     *add_team.TeamApp
 	service *Service
-	logger  *logrus.Logger
 }
 
-func NewTeamHandler(app *add_team.TeamApp, service *Service, logger *logrus.Logger) *Handler {
+func NewTeamHandler(app *add_team.TeamApp, service *Service) *Handler {
 	return &Handler{
 		app:     app,
 		service: service,
-		logger:  logger,
 	}
 }
 

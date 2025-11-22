@@ -2,7 +2,6 @@ package team
 
 import (
 	"errors"
-	"fmt"
 	"github.com/bdzhalalov/pr-review-assigner/internal/team/dto"
 	customErrors "github.com/bdzhalalov/pr-review-assigner/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -47,7 +46,6 @@ func (s *Service) Create(input dto.TeamDTO) (dto.TeamDTO, *customErrors.BaseErro
 }
 
 func (s *Service) GetByName(input dto.GetTeamByNameDTO) (dto.TeamDTO, *customErrors.BaseError) {
-	fmt.Println(input.TeamName)
 	team, err := s.repo.GetByName(input.TeamName)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
