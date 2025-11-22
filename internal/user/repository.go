@@ -1,7 +1,9 @@
 package user
 
 import (
+	"github.com/bdzhalalov/pr-review-assigner/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserRepository struct {
@@ -14,7 +16,7 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	}
 }
 
-func (r *UserRepository) Create(user *User) (*User, error) {
+func (r *UserRepository) Create(user *models.User) (*models.User, error) {
 	if err := r.db.Create(&user).Error; err != nil {
 		return nil, err
 	}
@@ -22,41 +24,45 @@ func (r *UserRepository) Create(user *User) (*User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) Update(userId string, fields map[string]interface{}) (*User, error) {
-	result := r.db.Model(&User{}).Where("user_id = ?", userId).Updates(fields)
-	if err := result.Error; err != nil {
+func (r *UserRepository) Update(userId string, fields map[string]interface{}) (*models.User, error) {
+	if err := r.db.Model(&models.User{}).Where("user_id = ?", userId).Updates(fields).Error; err != nil {
 		return nil, err
 	}
 
 	//Since MySql does not return an updated record, an additional query is required
-	var updated User
-	if err := r.db.Where("user_id = ?", userId).First(&updated).Error; err != nil {
+	var updated models.User
+	if err := r.db.Preload("Team").Where("user_id = ?", userId).First(&updated).Error; err != nil {
 		return nil, err
 	}
 
 	return &updated, nil
 }
 
-func (r *UserRepository) GetByUserID(userId string) (*User, error) {
-	var user User
-	if err := r.db.Where("user_id = ?", userId).First(&user).Error; err != nil {
+func (r *UserRepository) GetByUserID(userId string) (*models.User, error) {
+	var user models.User
+	if err := r.db.Preload("Team").Where("user_id = ?", userId).First(&user).Error; err != nil {
 		return nil, err
 	}
 
 	return &user, nil
 }
 
-func (r *UserRepository) GetByIDs(ids []string) ([]User, error) {
-	var users []User
-	if err := r.db.Where("user_id in (?)", ids).Find(&users).Error; err != nil {
+func (r *UserRepository) GetByIDs(ids []string) ([]models.User, error) {
+	var users []models.User
+	if err := r.db.Preload("Team").Where("user_id in (?)", ids).Find(&users).Error; err != nil {
 		return nil, err
 	}
 
 	return users, nil
 }
 
-func (r *UserRepository) CreateBatch(users []*User) error {
-	if err := r.db.Create(users).Error; err != nil {
+func (r *UserRepository) UpsertUsers(users []models.User) error {
+	updateColumns := []string{"username", "is_active", "team_id"}
+
+	if err := r.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		DoUpdates: clause.AssignmentColumns(updateColumns),
+	}).Create(&users).Error; err != nil {
 		return err
 	}
 

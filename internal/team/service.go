@@ -2,6 +2,7 @@ package team
 
 import (
 	"errors"
+	"github.com/bdzhalalov/pr-review-assigner/internal/models"
 	"github.com/bdzhalalov/pr-review-assigner/internal/team/dto"
 	customErrors "github.com/bdzhalalov/pr-review-assigner/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -9,8 +10,8 @@ import (
 )
 
 type RepositoryInterface interface {
-	Create(team *Team) (*Team, error)
-	GetByName(id string) (*Team, error)
+	Create(team *models.Team) (*models.Team, error)
+	GetByName(id string) (*models.Team, error)
 }
 
 type Service struct {
@@ -26,18 +27,17 @@ func NewTeamService(repo RepositoryInterface, logger *logrus.Logger) *Service {
 	}
 }
 
-func (s *Service) Create(input dto.TeamDTO) (dto.TeamDTO, *customErrors.BaseError) {
-	team := s.getStructFromDto(input)
+func (s *Service) Create(input dto.TeamRequestDTO) (dto.TeamResponseDTO, *customErrors.BaseError) {
+	team := &models.Team{
+		TeamName: input.TeamName,
+	}
 
 	res, err := s.repo.Create(team)
 
 	if err != nil {
 		s.logger.Errorf("Error while creating new team: %s", err)
 
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.TeamDTO{}, (&customErrors.NotFoundError{}).New()
-		}
-		return dto.TeamDTO{}, (&customErrors.InternalServerError{}).New()
+		return dto.TeamResponseDTO{}, (&customErrors.InternalServerError{}).New()
 	}
 
 	output := s.getDTOFromStruct(res)
@@ -45,16 +45,16 @@ func (s *Service) Create(input dto.TeamDTO) (dto.TeamDTO, *customErrors.BaseErro
 	return output, nil
 }
 
-func (s *Service) GetByName(input dto.GetTeamByNameDTO) (dto.TeamDTO, *customErrors.BaseError) {
+func (s *Service) GetByName(input dto.TeamRequestDTO) (dto.TeamResponseDTO, *customErrors.BaseError) {
 	team, err := s.repo.GetByName(input.TeamName)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.TeamDTO{}, (&customErrors.NotFoundError{}).New()
+			return dto.TeamResponseDTO{}, (&customErrors.NotFoundError{}).New()
 		}
 
 		s.logger.Errorf("Error while getting team by name: %s", err)
 
-		return dto.TeamDTO{}, (&customErrors.InternalServerError{}).New()
+		return dto.TeamResponseDTO{}, (&customErrors.InternalServerError{}).New()
 	}
 
 	output := s.getDTOFromStruct(team)
@@ -62,24 +62,9 @@ func (s *Service) GetByName(input dto.GetTeamByNameDTO) (dto.TeamDTO, *customErr
 	return output, nil
 }
 
-func (s *Service) getStructFromDto(dto dto.TeamDTO) *Team {
-	team := &Team{
-		TeamName: dto.TeamName,
-		Members:  make([]TeamMember, 0, len(dto.Members)),
-	}
-	for _, member := range dto.Members {
-		team.Members = append(team.Members, TeamMember{
-			UserID:   member.UserID,
-			Username: member.Username,
-			IsActive: member.IsActive,
-		})
-	}
-
-	return team
-}
-
-func (s *Service) getDTOFromStruct(team *Team) dto.TeamDTO {
-	teamDTO := dto.TeamDTO{
+func (s *Service) getDTOFromStruct(team *models.Team) dto.TeamResponseDTO {
+	teamDTO := dto.TeamResponseDTO{
+		ID:       team.ID,
 		TeamName: team.TeamName,
 		Members:  make([]dto.MemberDTO, 0, len(team.Members)),
 	}

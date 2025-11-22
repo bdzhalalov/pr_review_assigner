@@ -1,4 +1,4 @@
-package add_team
+package team
 
 type AddTeamRequest struct {
 	TeamName string       `json:"team_name"`

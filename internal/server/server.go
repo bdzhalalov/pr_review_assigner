@@ -3,7 +3,7 @@ package server
 import (
 	"errors"
 	"github.com/bdzhalalov/pr-review-assigner/config"
-	"github.com/bdzhalalov/pr-review-assigner/internal/app/add_team"
+	teamApp "github.com/bdzhalalov/pr-review-assigner/internal/app/team"
 	"github.com/bdzhalalov/pr-review-assigner/internal/team"
 	"github.com/bdzhalalov/pr-review-assigner/internal/user"
 	"github.com/sirupsen/logrus"
@@ -24,9 +24,9 @@ func Init(config *config.Config, logger *logrus.Logger, db *gorm.DB) *APIServer 
 	ts := team.NewTeamService(tr, logger)
 	us := user.NewUserService(ur, logger)
 
-	teamApp := add_team.NewTeamApp(ts, us)
+	ta := teamApp.NewTeamApp(ts, us)
 
-	th := team.NewTeamHandler(teamApp, ts)
+	th := team.NewTeamHandler(ta, ts)
 	teamRouter := team.TeamRouter(th)
 
 	uh := user.NewUserHandler(us)

@@ -1,8 +1,7 @@
 package dto
 
-type TeamDTO struct {
-	TeamName string      `json:"team_name"`
-	Members  []MemberDTO `json:"members"`
+type TeamRequestDTO struct {
+	TeamName string
 }
 
 type MemberDTO struct {
@@ -11,6 +10,8 @@ type MemberDTO struct {
 	IsActive bool   `json:"is_active"`
 }
 
-type GetTeamByNameDTO struct {
-	TeamName string
+type TeamResponseDTO struct {
+	ID       uint        `json:"id"`
+	TeamName string      `json:"team_name"`
+	Members  []MemberDTO `json:"members"`
 }

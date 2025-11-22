@@ -1,4 +1,4 @@
-package add_team
+package team
 
 import (
 	teamDTO "github.com/bdzhalalov/pr-review-assigner/internal/team/dto"
@@ -8,13 +8,12 @@ import (
 )
 
 type TeamServiceInterface interface {
-	Create(input teamDTO.TeamDTO) (teamDTO.TeamDTO, *errors.BaseError)
-	GetByName(input teamDTO.GetTeamByNameDTO) (teamDTO.TeamDTO, *errors.BaseError)
+	Create(input teamDTO.TeamRequestDTO) (teamDTO.TeamResponseDTO, *errors.BaseError)
+	GetByName(input teamDTO.TeamRequestDTO) (teamDTO.TeamResponseDTO, *errors.BaseError)
 }
 
 type UserServiceInterface interface {
-	GetUsersByIDs(input userDTO.GetUsersByIdsDTO) ([]userDTO.UserDTO, *errors.BaseError)
-	EnsureUsers(input []userDTO.UserDTO) *errors.BaseError
+	CreateOrUpdate(input []userDTO.UserRequestDTO) *errors.BaseError
 }
 
 type TeamApp struct {
@@ -30,58 +29,46 @@ func NewTeamApp(tsi TeamServiceInterface, usi UserServiceInterface) *TeamApp {
 }
 
 func (a *TeamApp) AddTeam(request AddTeamRequest) (AddTeamResponse, *errors.BaseError) {
-	teamNameDTO := teamDTO.GetTeamByNameDTO{
+	dto := teamDTO.TeamRequestDTO{
 		TeamName: request.TeamName,
 	}
-	_, err := a.teamService.GetByName(teamNameDTO)
+	_, err := a.teamService.GetByName(dto)
 	if err == nil {
 		return AddTeamResponse{}, (&errors.TeamExistsError{}).New()
 	} else if err.Code != http.StatusNotFound {
-		return AddTeamResponse{}, (&errors.InternalServerError{}).New()
-	}
-
-	users := make([]userDTO.UserDTO, 0, len(request.Members))
-	for _, m := range request.Members {
-		users = append(users, userDTO.UserDTO{
-			UserID:   m.UserID,
-			Username: m.Username,
-			IsActive: m.IsActive,
-			TeamName: request.TeamName,
-		})
-	}
-
-	if err := a.userService.EnsureUsers(users); err != nil {
 		return AddTeamResponse{}, err
 	}
 
-	dto := a.getDTOFromRequest(request)
-
-	createdTeamDTO, err := a.teamService.Create(dto)
+	createdTeam, err := a.teamService.Create(dto)
 	if err != nil {
 		return AddTeamResponse{}, err
 	}
 
-	response := a.getResponseFromDTO(createdTeamDTO)
-	return response, nil
-}
-
-func (a *TeamApp) getDTOFromRequest(request AddTeamRequest) teamDTO.TeamDTO {
-	dto := teamDTO.TeamDTO{
-		TeamName: request.TeamName,
-		Members:  make([]teamDTO.MemberDTO, 0, len(request.Members)),
-	}
-	for _, member := range request.Members {
-		dto.Members = append(dto.Members, teamDTO.MemberDTO{
-			UserID:   member.UserID,
-			Username: member.Username,
-			IsActive: member.IsActive,
+	users := make([]userDTO.UserRequestDTO, 0, len(request.Members))
+	for _, m := range request.Members {
+		users = append(users, userDTO.UserRequestDTO{
+			UserID:   m.UserID,
+			Username: m.Username,
+			IsActive: m.IsActive,
+			TeamID:   createdTeam.ID,
 		})
 	}
 
-	return dto
+	if err := a.userService.CreateOrUpdate(users); err != nil {
+		return AddTeamResponse{}, err
+	}
+
+	teamWithMembers, err := a.teamService.GetByName(dto)
+	if err != nil {
+		return AddTeamResponse{}, err
+	}
+
+	output := a.getResponseFromDTO(teamWithMembers)
+
+	return output, nil
 }
 
-func (a *TeamApp) getResponseFromDTO(dto teamDTO.TeamDTO) AddTeamResponse {
+func (a *TeamApp) getResponseFromDTO(dto teamDTO.TeamResponseDTO) AddTeamResponse {
 	response := AddTeamResponse{
 		TeamName: dto.TeamName,
 		Members:  make([]TeamMember, 0, len(dto.Members)),

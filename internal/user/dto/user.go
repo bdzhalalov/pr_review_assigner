@@ -5,7 +5,7 @@ type GetUsersByIdsDTO struct {
 }
 
 type GetUserByIDDTO struct {
-	UserID string `json:"user_id"`
+	UserID string
 }
 
 type UpdateUserActivityDTO struct {
@@ -13,9 +13,16 @@ type UpdateUserActivityDTO struct {
 	IsActive bool   `json:"is_active"`
 }
 
-type UserDTO struct {
+type UserRequestDTO struct {
 	UserID   string
 	Username string
-	TeamName string
+	TeamID   uint
 	IsActive bool
+}
+
+type UserResponseDTO struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	TeamName string `json:"team_name"`
+	IsActive bool   `json:"is_active"`
 }
