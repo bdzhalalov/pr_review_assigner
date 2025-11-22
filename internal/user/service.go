@@ -1,13 +1,16 @@
 package user
 
 import (
+	"errors"
 	"github.com/bdzhalalov/pr-review-assigner/internal/user/dto"
-	"github.com/bdzhalalov/pr-review-assigner/pkg/errors"
+	customErrors "github.com/bdzhalalov/pr-review-assigner/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type RepositoryInterface interface {
 	Create(user *User) (*User, error)
+	Update(userId string, fields map[string]interface{}) (*User, error)
 	GetByUserID(userId string) (*User, error)
 	GetByIDs(ids []string) ([]User, error)
 	CreateBatch(users []*User) error
@@ -25,12 +28,34 @@ func NewUserService(repo RepositoryInterface, logger *logrus.Logger) *Service {
 	}
 }
 
-func (s *Service) GetUsersByIDs(input dto.GetUsersByIdsDTO) ([]dto.UserDTO, *errors.BaseError) {
+func (s *Service) GetUserByID(input dto.GetUserByIDDTO) (dto.UserDTO, *customErrors.BaseError) {
+	user, err := s.repo.GetByUserID(input.UserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dto.UserDTO{}, (&customErrors.NotFoundError{}).New()
+		}
+
+		s.logger.Errorf("Error while getting user by ID: %s", err)
+
+		return dto.UserDTO{}, (&customErrors.InternalServerError{}).New()
+	}
+
+	userDTO := dto.UserDTO{
+		UserID:   user.UserID,
+		Username: user.Username,
+		TeamName: user.TeamName,
+		IsActive: user.IsActive,
+	}
+
+	return userDTO, nil
+}
+
+func (s *Service) GetUsersByIDs(input dto.GetUsersByIdsDTO) ([]dto.UserDTO, *customErrors.BaseError) {
 	users, err := s.repo.GetByIDs(input.IDs)
 	if err != nil {
 		s.logger.Errorf("error getting users by ids: %s", err.Error())
 
-		return nil, (&errors.InternalServerError{}).New()
+		return nil, (&customErrors.InternalServerError{}).New()
 	}
 
 	output := s.getDTOFromStruct(users)
@@ -38,7 +63,38 @@ func (s *Service) GetUsersByIDs(input dto.GetUsersByIdsDTO) ([]dto.UserDTO, *err
 	return output, nil
 }
 
-func (s *Service) EnsureUsers(input []dto.UserDTO) *errors.BaseError {
+func (s *Service) UpdateUserActivity(input dto.UpdateUserActivityDTO) (dto.UserDTO, *customErrors.BaseError) {
+	_, err := s.repo.GetByUserID(input.UserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dto.UserDTO{}, (&customErrors.NotFoundError{}).New()
+		}
+
+		s.logger.Errorf("Error while getting user by ID: %s", err)
+
+		return dto.UserDTO{}, (&customErrors.InternalServerError{}).New()
+	}
+
+	updatedUser, err := s.repo.Update(input.UserID, map[string]interface{}{
+		"is_active": input.IsActive,
+	})
+	if err != nil {
+		s.logger.Errorf("Error while updating user activity: %s", err)
+
+		return dto.UserDTO{}, (&customErrors.InternalServerError{}).New()
+	}
+
+	userDTO := dto.UserDTO{
+		UserID:   updatedUser.UserID,
+		Username: updatedUser.Username,
+		TeamName: updatedUser.TeamName,
+		IsActive: updatedUser.IsActive,
+	}
+
+	return userDTO, nil
+}
+
+func (s *Service) EnsureUsers(input []dto.UserDTO) *customErrors.BaseError {
 	users := s.getStructFromDTO(input)
 
 	if len(users) == 0 {
@@ -53,7 +109,7 @@ func (s *Service) EnsureUsers(input []dto.UserDTO) *errors.BaseError {
 	existing, err := s.repo.GetByIDs(ids)
 	if err != nil {
 		s.logger.Errorf("error getting existing users: %s", err)
-		return (&errors.InternalServerError{}).New()
+		return (&customErrors.InternalServerError{}).New()
 	}
 
 	existingMap := make(map[string]struct{}, len(existing))
@@ -72,7 +128,7 @@ func (s *Service) EnsureUsers(input []dto.UserDTO) *errors.BaseError {
 	if len(toCreate) > 0 {
 		if err := s.repo.CreateBatch(toCreate); err != nil {
 			s.logger.Errorf("error creating users: %s", err)
-			return (&errors.InternalServerError{}).New()
+			return (&customErrors.InternalServerError{}).New()
 		}
 	}
 

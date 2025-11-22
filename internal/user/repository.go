@@ -22,6 +22,21 @@ func (r *UserRepository) Create(user *User) (*User, error) {
 	return user, nil
 }
 
+func (r *UserRepository) Update(userId string, fields map[string]interface{}) (*User, error) {
+	result := r.db.Model(&User{}).Where("user_id = ?", userId).Updates(fields)
+	if err := result.Error; err != nil {
+		return nil, err
+	}
+
+	//Since MySql does not return an updated record, an additional query is required
+	var updated User
+	if err := r.db.Where("user_id = ?", userId).First(&updated).Error; err != nil {
+		return nil, err
+	}
+
+	return &updated, nil
+}
+
 func (r *UserRepository) GetByUserID(userId string) (*User, error) {
 	var user User
 	if err := r.db.Where("user_id = ?", userId).First(&user).Error; err != nil {

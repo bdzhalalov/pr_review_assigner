@@ -26,11 +26,15 @@ func Init(config *config.Config, logger *logrus.Logger, db *gorm.DB) *APIServer 
 
 	teamApp := add_team.NewTeamApp(ts, us)
 
-	th := team.NewTeamHandler(teamApp, ts, logger)
+	th := team.NewTeamHandler(teamApp, ts)
 	teamRouter := team.TeamRouter(th)
+
+	uh := user.NewUserHandler(us)
+	userRouter := user.UserRouter(uh)
 
 	router := MainRouter(Routers{
 		teamRouter: teamRouter,
+		userRouter: userRouter,
 	})
 
 	return &APIServer{
