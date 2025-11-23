@@ -20,5 +20,3 @@ COPY config /config
 WORKDIR /var/www/
 
 EXPOSE 8080
-
-CMD ["/cmd"]
