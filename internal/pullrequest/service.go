@@ -2,7 +2,6 @@ package pullrequest
 
 import (
 	"errors"
-	"fmt"
 	"github.com/bdzhalalov/pr-review-assigner/internal/models"
 	"github.com/bdzhalalov/pr-review-assigner/internal/pullrequest/dto"
 	customErrors "github.com/bdzhalalov/pr-review-assigner/pkg/errors"
@@ -75,8 +74,6 @@ func (s *Service) CreatePullRequest(input dto.PrRequestDTO) (dto.PrResponseDTO, 
 		return dto.PrResponseDTO{}, (&customErrors.InternalServerError{}).New()
 	}
 
-	fmt.Println(reviewers)
-
 	pr := &models.PullRequest{
 		PullRequestID:     input.PullRequestID,
 		PullRequestName:   input.PullRequestName,
@@ -130,7 +127,6 @@ func (s *Service) ReassignReviewers(input dto.ReassignReviewersDTO) *customError
 		excludedIds = append(excludedIds, reviewer.UserID)
 	}
 	excludedIds = append(excludedIds, input.AuthorID)
-	fmt.Println(excludedIds)
 
 	availableReviewer, err := s.repo.GetAvailableReviewerForReassign(input.TeamName, excludedIds)
 	if err != nil {
