@@ -29,6 +29,17 @@ func (r *Repository) GetByID(prID string) (*models.PullRequest, error) {
 	return &pr, nil
 }
 
+func (r *Repository) GetByReviewerID(reviewerID string) ([]models.PullRequest, error) {
+	var prs []models.PullRequest
+	err := r.db.Joins("JOIN pull_request_reviewers prr ON prr.pull_request_id = pull_requests.pull_request_id").
+		Where("prr.user_id = ?", reviewerID).
+		Find(&prs).Error
+	if err != nil {
+		return nil, err
+	}
+	return prs, nil
+}
+
 func (r *Repository) GetReviewersByTeam(teamName string, authorID string) ([]models.User, error) {
 	var reviewers []models.User
 	if err := r.db.Where(`

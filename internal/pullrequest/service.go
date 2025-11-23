@@ -13,6 +13,7 @@ import (
 
 type RepositoryInterface interface {
 	GetByID(prID string) (*models.PullRequest, error)
+	GetByReviewerID(userID string) ([]models.PullRequest, error)
 	GetReviewersByTeam(teamName string, authorId string) ([]models.User, error)
 	GetPullRequestReviewers(prID string) ([]models.User, error)
 	GetAvailableReviewerForReassign(teamName string, reviewerIds []string) (*models.User, error)
@@ -46,6 +47,26 @@ func (s *Service) GetPrByID(input dto.GetPrByIdDTO) (dto.PrResponseDTO, *customE
 	}
 
 	return s.getDTOFromStruct(pr), nil
+}
+
+func (s *Service) GetPrByReviewerID(input dto.GetPrByReviewerIdDTO) ([]dto.PrResponseDTO, *customErrors.BaseError) {
+	pullRequests, err := s.repo.GetByReviewerID(input.ReviewerID)
+	if err != nil {
+		return []dto.PrResponseDTO{}, (&customErrors.InternalServerError{}).New()
+	}
+
+	DTOs := make([]dto.PrResponseDTO, 0, len(pullRequests))
+
+	for _, pr := range pullRequests {
+		DTOs = append(DTOs, dto.PrResponseDTO{
+			PullRequestID:   pr.PullRequestID,
+			PullRequestName: pr.PullRequestName,
+			AuthorID:        pr.AuthorID,
+			Status:          pr.Status,
+		})
+	}
+
+	return DTOs, nil
 }
 
 func (s *Service) CreatePullRequest(input dto.PrRequestDTO) (dto.PrResponseDTO, *customErrors.BaseError) {

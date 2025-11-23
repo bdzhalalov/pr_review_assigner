@@ -4,6 +4,10 @@ type GetPrByIdDTO struct {
 	PullRequestID string
 }
 
+type GetPrByReviewerIdDTO struct {
+	ReviewerID string
+}
+
 type PrRequestDTO struct {
 	PullRequestID   string
 	PullRequestName string

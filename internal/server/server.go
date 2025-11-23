@@ -5,6 +5,7 @@ import (
 	"github.com/bdzhalalov/pr-review-assigner/config"
 	prApp "github.com/bdzhalalov/pr-review-assigner/internal/app/pullrequest"
 	teamApp "github.com/bdzhalalov/pr-review-assigner/internal/app/team"
+	userApp "github.com/bdzhalalov/pr-review-assigner/internal/app/user"
 	"github.com/bdzhalalov/pr-review-assigner/internal/pullrequest"
 	"github.com/bdzhalalov/pr-review-assigner/internal/team"
 	"github.com/bdzhalalov/pr-review-assigner/internal/user"
@@ -30,11 +31,12 @@ func Init(config *config.Config, logger *logrus.Logger, db *gorm.DB) *APIServer 
 
 	ta := teamApp.NewTeamApp(ts, us)
 	pa := prApp.InitPRApps(ts, us, ps)
+	ua := userApp.NewUserApp(ps, us)
 
 	th := team.NewTeamHandler(ta, ts)
 	teamRouter := team.TeamRouter(th)
 
-	uh := user.NewUserHandler(us)
+	uh := user.NewUserHandler(us, ua)
 	userRouter := user.UserRouter(uh)
 
 	ph := pullrequest.NewPrHandler(pa, ps)
