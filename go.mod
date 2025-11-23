@@ -1,8 +1,6 @@
 module github.com/bdzhalalov/pr-review-assigner
 
-go 1.24.0
-
-toolchain go1.24.10
+go 1.25
 
 require (
 	github.com/gorilla/mux v1.8.1
@@ -14,6 +12,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/brianvoe/gofakeit/v7 v7.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
