@@ -40,16 +40,14 @@ func (s *Service) Create(input dto.TeamRequestDTO) (dto.TeamResponseDTO, *custom
 		return dto.TeamResponseDTO{}, (&customErrors.InternalServerError{}).New()
 	}
 
-	output := s.getDTOFromStruct(res)
-
-	return output, nil
+	return s.getDTOFromStruct(res), nil
 }
 
 func (s *Service) GetByName(input dto.TeamRequestDTO) (dto.TeamResponseDTO, *customErrors.BaseError) {
 	team, err := s.repo.GetByName(input.TeamName)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.TeamResponseDTO{}, (&customErrors.NotFoundError{}).New()
+			return dto.TeamResponseDTO{}, (&customErrors.NotFoundError{}).New("Team not found")
 		}
 
 		s.logger.Errorf("Error while getting team by name: %s", err)
@@ -57,9 +55,7 @@ func (s *Service) GetByName(input dto.TeamRequestDTO) (dto.TeamResponseDTO, *cus
 		return dto.TeamResponseDTO{}, (&customErrors.InternalServerError{}).New()
 	}
 
-	output := s.getDTOFromStruct(team)
-
-	return output, nil
+	return s.getDTOFromStruct(team), nil
 }
 
 func (s *Service) getDTOFromStruct(team *models.Team) dto.TeamResponseDTO {

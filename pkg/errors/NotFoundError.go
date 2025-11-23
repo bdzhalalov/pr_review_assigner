@@ -7,9 +7,9 @@ type NotFoundError struct {
 	Code    int
 }
 
-func (e *NotFoundError) New() *BaseError {
+func (e *NotFoundError) New(message string) *BaseError {
 	return &BaseError{
-		Message: "Resource Not Found",
+		Message: message,
 		Code:    http.StatusNotFound,
 	}
 }

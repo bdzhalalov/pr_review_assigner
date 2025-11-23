@@ -3,7 +3,9 @@ package server
 import (
 	"errors"
 	"github.com/bdzhalalov/pr-review-assigner/config"
+	prApp "github.com/bdzhalalov/pr-review-assigner/internal/app/pullrequest"
 	teamApp "github.com/bdzhalalov/pr-review-assigner/internal/app/team"
+	"github.com/bdzhalalov/pr-review-assigner/internal/pullrequest"
 	"github.com/bdzhalalov/pr-review-assigner/internal/team"
 	"github.com/bdzhalalov/pr-review-assigner/internal/user"
 	"github.com/sirupsen/logrus"
@@ -20,11 +22,14 @@ type APIServer struct {
 func Init(config *config.Config, logger *logrus.Logger, db *gorm.DB) *APIServer {
 	tr := team.NewTeamRepository(db)
 	ur := user.NewUserRepository(db)
+	pr := pullrequest.NewPrRepository(db)
 
 	ts := team.NewTeamService(tr, logger)
 	us := user.NewUserService(ur, logger)
+	ps := pullrequest.NewPrService(pr, logger)
 
 	ta := teamApp.NewTeamApp(ts, us)
+	pa := prApp.InitPRApps(ts, us, ps)
 
 	th := team.NewTeamHandler(ta, ts)
 	teamRouter := team.TeamRouter(th)
@@ -32,9 +37,13 @@ func Init(config *config.Config, logger *logrus.Logger, db *gorm.DB) *APIServer 
 	uh := user.NewUserHandler(us)
 	userRouter := user.UserRouter(uh)
 
+	ph := pullrequest.NewPrHandler(pa, ps)
+	prRouter := pullrequest.PullRequestRouter(ph)
+
 	router := MainRouter(Routers{
 		teamRouter: teamRouter,
 		userRouter: userRouter,
+		prRouter:   prRouter,
 	})
 
 	return &APIServer{

@@ -1,9 +1,5 @@
 package dto
 
-type GetUsersByIdsDTO struct {
-	IDs []string
-}
-
 type GetUserByIDDTO struct {
 	UserID string
 }

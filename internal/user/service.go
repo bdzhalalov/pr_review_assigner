@@ -10,10 +10,8 @@ import (
 )
 
 type RepositoryInterface interface {
-	Create(user *models.User) (*models.User, error)
 	Update(userId string, fields map[string]interface{}) (*models.User, error)
 	GetByUserID(userId string) (*models.User, error)
-	GetByIDs(ids []string) ([]models.User, error)
 	UpsertUsers(users []models.User) error
 }
 
@@ -33,7 +31,7 @@ func (s *Service) GetUserByID(input dto.GetUserByIDDTO) (dto.UserResponseDTO, *c
 	user, err := s.repo.GetByUserID(input.UserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.UserResponseDTO{}, (&customErrors.NotFoundError{}).New()
+			return dto.UserResponseDTO{}, (&customErrors.NotFoundError{}).New("User not found")
 		}
 
 		s.logger.Errorf("Error while getting user by ID: %s", err)
@@ -51,24 +49,11 @@ func (s *Service) GetUserByID(input dto.GetUserByIDDTO) (dto.UserResponseDTO, *c
 	return output, nil
 }
 
-func (s *Service) GetUsersByIDs(input dto.GetUsersByIdsDTO) ([]dto.UserResponseDTO, *customErrors.BaseError) {
-	users, err := s.repo.GetByIDs(input.IDs)
-	if err != nil {
-		s.logger.Errorf("error getting users by ids: %s", err.Error())
-
-		return nil, (&customErrors.InternalServerError{}).New()
-	}
-
-	output := s.getDTOFromStruct(users)
-
-	return output, nil
-}
-
 func (s *Service) UpdateUserActivity(input dto.UpdateUserActivityDTO) (dto.UserResponseDTO, *customErrors.BaseError) {
 	_, err := s.repo.GetByUserID(input.UserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.UserResponseDTO{}, (&customErrors.NotFoundError{}).New()
+			return dto.UserResponseDTO{}, (&customErrors.NotFoundError{}).New("User not found")
 		}
 
 		s.logger.Errorf("Error while getting user by ID: %s", err)

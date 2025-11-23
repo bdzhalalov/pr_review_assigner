@@ -16,26 +16,18 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	}
 }
 
-func (r *UserRepository) Create(user *models.User) (*models.User, error) {
-	if err := r.db.Create(&user).Error; err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
 func (r *UserRepository) Update(userId string, fields map[string]interface{}) (*models.User, error) {
 	if err := r.db.Model(&models.User{}).Where("user_id = ?", userId).Updates(fields).Error; err != nil {
 		return nil, err
 	}
 
 	//Since MySql does not return an updated record, an additional query is required
-	var updated models.User
-	if err := r.db.Preload("Team").Where("user_id = ?", userId).First(&updated).Error; err != nil {
+	updated, err := r.GetByUserID(userId)
+	if err != nil {
 		return nil, err
 	}
 
-	return &updated, nil
+	return updated, nil
 }
 
 func (r *UserRepository) GetByUserID(userId string) (*models.User, error) {
@@ -45,15 +37,6 @@ func (r *UserRepository) GetByUserID(userId string) (*models.User, error) {
 	}
 
 	return &user, nil
-}
-
-func (r *UserRepository) GetByIDs(ids []string) ([]models.User, error) {
-	var users []models.User
-	if err := r.db.Preload("Team").Where("user_id in (?)", ids).Find(&users).Error; err != nil {
-		return nil, err
-	}
-
-	return users, nil
 }
 
 func (r *UserRepository) UpsertUsers(users []models.User) error {
